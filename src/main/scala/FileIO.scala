@@ -1,17 +1,30 @@
 import scala.io.Source
+import scala.util.Using
+import org.json4s.DefaultFormats
+import org.json4s.Formats
+import org.json4s.jackson.JsonMethods.parse
 
 object FileIO {
+
+  type Subscription = (String, String) // (subredditName, url)
+  private case class RawSubscription(name: String, url: String)
+
   // Pure function to read subscriptions from a JSON file
-  def readSubscriptions(): List[String] = {
-    List(
-      "https://www.reddit.com/r/scala/.json?count=10",
-      "https://www.reddit.com/r/learnprogramming/.json?count=10"
-    )
+  def readSubscriptions(path: String): List[Subscription] = {
+    implicit val formats: Formats = DefaultFormats
+
+    val jsonSubscriptions = Using.resource(Source.fromFile(path, "UTF-8")) { src =>
+      src.getLines().mkString("\n")
+    }
+
+    parse(jsonSubscriptions)
+      .extract[List[RawSubscription]]
+      .map(s => (s.name, s.url))
   }
 
   // Pure function to download JSON feed from a URL
-  def downloadFeed(url: String): String = {
-    val source = Source.fromURL(url)
-    source.mkString
-  }
+  def downloadFeed(url: String): String =
+    Using.resource(Source.fromURL(url)(scala.io.Codec.UTF8)) { source =>
+      source.mkString
+    }
 }
