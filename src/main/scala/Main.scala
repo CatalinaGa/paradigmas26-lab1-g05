@@ -1,10 +1,12 @@
+import org.json4s.DefaultFormats
+
 object Main {
   def main(args: Array[String]): Unit = {
     val header = s"Reddit Post Parser\n${"=" * 40}"
     println(header)
 
-    val subscriptions: List[FileIO.Subscription] =
-      FileIO.readSubscriptions("subscriptions.json")
+    val formats = DefaultFormats
+    val subscriptions: List[FileIO.Subscription] = FileIO.readSubscriptions("subscriptions.json", formats)
 
     val allPosts: List[FileIO.Subscription] = subscriptions.map { case (_, url) =>
       println(s"Fetching posts from: $url")
