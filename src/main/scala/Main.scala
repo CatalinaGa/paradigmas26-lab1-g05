@@ -8,9 +8,9 @@ object Main {
     val formats = DefaultFormats
     val subscriptions: List[FileIO.Subscription] = FileIO.readSubscriptions("subscriptions.json", formats)
 
-    val allPosts: List[FileIO.Subscription] = subscriptions.map { case (_, url) =>
+    val allPosts: List[(String, List[FileIO.Post])] = subscriptions.map { case (name, url) =>
       println(s"Fetching posts from: $url")
-      val posts = FileIO.downloadFeed(url)
+      val posts = FileIO.downloadFeed(url, formats)
       (url, posts)
     }
 
