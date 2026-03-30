@@ -17,7 +17,8 @@ object Main {
         // 2. Aquí también podemos usar getOrElse(Nil) para que el map 
         // de Main siga teniendo una lista, aunque esté vacía.
         val posts = FileIO.downloadFeed(url, formats).getOrElse(Nil)
-        (url, posts)
+        val filteredPosts = FileIO.filterPosts(posts).getOrElse(Nil)
+        (url, filteredPosts)
       }
 
       // 3. Formateamos los resultados

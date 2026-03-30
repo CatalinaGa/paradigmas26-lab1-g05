@@ -76,5 +76,15 @@ object FileIO {
     }catch{
       case _ : Exception => None 
     }
+
+    
+  }
+
+  def filterPosts(posts: List[Post]): Option[List[Post]] = {
+      Some (
+        posts.filter { case (title, selftext, _, _) =>
+          title.trim.nonEmpty && selftext.trim.nonEmpty
+        }  
+      )
   }
 }
