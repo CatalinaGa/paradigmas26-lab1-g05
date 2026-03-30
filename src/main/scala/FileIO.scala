@@ -8,7 +8,7 @@ import org.json4s.jackson.JsonMethods.parse
 object FileIO {
 
   type Subscription = (String, String) // (subredditName, url)
-  type Post = (String, String, String, String) // (title, selftext, createdUtc, date)
+  type Post = (String, String, String, String) // (subreddit, title, selftext, date)
 
   private def extractString(value: JValue, key: String, formats: Formats): Option[String] =
     (value \ key).extractOpt[String](formats, manifest[String])
@@ -50,12 +50,13 @@ object FileIO {
         values.flatMap { child =>
           val data = child \ "data"
           for {
+            subreddit <- extractString(data, "subreddit", formats)
             title <- extractString(data, "title", formats)
             createdUtc <- extractDouble(data, "created_utc", formats)
           } yield {
             val selftext = extractString(data, "selftext", formats).getOrElse("")
             val epoch = createdUtc.toLong
-            (title, selftext, epoch.toString, formatEpochSeconds(epoch))
+            (subreddit, title, selftext, formatEpochSeconds(epoch))
           }
         }
       case _ => Nil
