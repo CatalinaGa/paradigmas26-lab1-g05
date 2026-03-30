@@ -20,46 +20,61 @@ object FileIO {
     DateTimeFormatter.ISO_INSTANT.format(Instant.ofEpochSecond(seconds))
 
   // Pure function to read subscriptions from a JSON file
-  def readSubscriptions(path: String, formats: Formats): List[Subscription] = {
-    val jsonSubscriptions = Using.resource(Source.fromFile(path, "UTF-8")) { src =>
-      src.getLines().mkString("\n")
+  def readSubscriptions(path: String, formats: Formats): Option[List[Subscription]] = {
+    try{
+        val jsonSubscriptions = Using.resource(Source.fromFile(path, "UTF-8")) { src =>
+        src.getLines().mkString("\n")
+      }
+
+      
+      val subs = parse(jsonSubscriptions) match {
+        case JArray(values) =>
+          values.flatMap { subscription =>
+            for {
+              name <- extractString(subscription, "name", formats)
+              url  <- extractString(subscription, "url", formats)
+            } yield (name, url)
+          }
+        case _ => Nil
+      }
+      if (subs.isEmpty) None else Some(subs)
+
+    }catch{
+       case _ : Exception =>None
     }
 
-    parse(jsonSubscriptions) match {
-      case JArray(values) =>
-        values.flatMap { subscription =>
-          for {
-            name <- extractString(subscription, "name", formats)
-            url <- extractString(subscription, "url", formats)
-          } yield (name, url)
-        }
-      case _ => Nil
-    }
   }
 
   // Pure function to download JSON feed from a URL
-  def downloadFeed(url: String, formats: Formats): List[Post] = {
-    val jsonPosts = Using.resource(Source.fromURL(url)(scala.io.Codec.UTF8)) { src =>
-      src.getLines().mkString("\n")
-    }
+  def downloadFeed(url: String, formats: Formats): Option[List[Post]] = {
+    try{ 
+      
+      val jsonPosts = Using.resource(Source.fromURL(url)(scala.io.Codec.UTF8)) { src =>
+        src.getLines().mkString("\n")
+      }
+      
+      val children = parse(jsonPosts) \ "data" \ "children"
 
-    val children = parse(jsonPosts) \ "data" \ "children"
-
-    children match {
-      case JArray(values) =>
-        values.flatMap { child =>
-          val data = child \ "data"
-          for {
-            subreddit <- extractString(data, "subreddit", formats)
-            title <- extractString(data, "title", formats)
-            createdUtc <- extractDouble(data, "created_utc", formats)
-          } yield {
-            val selftext = extractString(data, "selftext", formats).getOrElse("")
-            val epoch = createdUtc.toLong
-            (subreddit, title, selftext, formatEpochSeconds(epoch))
+      val allPosts = children match {
+        case JArray(values) =>
+          values.flatMap { child =>
+            val data = child \ "data"
+            for {
+              subreddit <- extractString(data, "subreddit", formats)
+              title     <- extractString(data, "title", formats)
+              createdUtc <- extractDouble(data, "created_utc", formats)
+            } yield {
+              val selftext = extractString(data, "selftext", formats).getOrElse("")
+              val epoch = createdUtc.toLong
+              // Ahora formatEpochSeconds devuelve String, así que calza perfecto en la tupla
+              (subreddit, title, selftext, formatEpochSeconds(epoch))
+            }
           }
-        }
-      case _ => Nil
+        case _ => Nil
+      }
+      if (allPosts.isEmpty) None else Some(allPosts)
+    }catch{
+      case _ : Exception => None 
     }
   }
 }

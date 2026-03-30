@@ -6,17 +6,26 @@ object Main {
     println(header)
 
     val formats = DefaultFormats
-    val subscriptions: List[FileIO.Subscription] = FileIO.readSubscriptions("subscriptions.json", formats)
 
-    val allPosts: List[(String, List[FileIO.Post])] = subscriptions.map { case (name, url) =>
-      println(s"Fetching posts from: $url")
-      val posts = FileIO.downloadFeed(url, formats)
-      (url, posts)
-    }
+    // 1. Usamos flatMap para entrar en el Option de suscripciones.
+    // Si readSubscriptions devuelve None, todo el bloque se ignora.
+    val output = FileIO.readSubscriptions("subscriptions.json", formats).map { subscriptions =>
+      
+      val allResults = subscriptions.map { case (name, url) =>
+        println(s"Fetching posts from: $url")
+        
+        // 2. Aquí también podemos usar getOrElse(Nil) para que el map 
+        // de Main siga teniendo una lista, aunque esté vacía.
+        val posts = FileIO.downloadFeed(url, formats).getOrElse(Nil)
+        (url, posts)
+      }
 
-    val output = allPosts
-      .map { case (url, posts) => Formatters.formatSubscription(url, posts) }
-      .mkString("\n")
+      // 3. Formateamos los resultados
+      allResults
+        .map { case (url, posts) => Formatters.formatSubscription(url, posts) }
+        .mkString("\n")
+        
+    }.getOrElse("No se encontraron suscripciones o el archivo es inválido.")
 
     println(output)
   }
