@@ -11,7 +11,8 @@ object Main {
     val allPosts: List[(String, List[FileIO.Post])] = subscriptions.map { case (name, url) =>
       println(s"Fetching posts from: $url")
       val posts = FileIO.downloadFeed(url, formats)
-      (url, posts)
+      val filteredPosts = FileIO.filterPosts(posts).getOrElse(Nil)
+      (url, filteredPosts)
     }
 
     val output = allPosts
