@@ -88,7 +88,9 @@ object FileIO {
       )
   }
 
-  def identifyWords(posts: List[Post]): List[String] = {
+
+  def wordsFreq(posts: List[Post]): List[(String, Int)] = {
+    
     val stopwords = {"the", "about", "above", "after", "again", "against", "all", "am", "an",
     "and", "any", "are", "aren't", "as", "at", "be", "because", "been",
     "before", "being", "below", "between", "both", "but", "by", "can't",
@@ -110,7 +112,10 @@ object FileIO {
     "who's", "whom", "why", "why's", "with", "won't", "would",
     "wouldn't", "you", "you'd", "you'll", "you're", "you've", "your", "yours",
     "yourself", "yourselves"}
+    
     val words = posts.map(p => p.selftext.split(" ").groupBy(identity))
-    val filteredWords = words.map(p => p.filter())
+    
+    val filteredWords = words.map(m => m.filter { case (word, _) => word.nonEmpty && word.head.isUpper && !stopwords.contains(word.toLowerCase) })
+
   }
 }
