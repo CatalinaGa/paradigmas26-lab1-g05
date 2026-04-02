@@ -8,7 +8,7 @@ import org.json4s.jackson.JsonMethods.parse
 object FileIO {
 
   type Subscription = (String, String) // (subredditName, url)
-  type Post = (String, String, String, String) // (subreddit, title, selftext, date)
+  type Post = (String, String, String, String, Int, Int) // (subreddit, title, selftext, date, ups, downs )
 
   private def extractString(value: JValue, key: String, formats: Formats): Option[String] =
     (value \ key).extractOpt[String](formats, manifest[String])
@@ -60,14 +60,16 @@ object FileIO {
           values.flatMap { child =>
             val data = child \ "data"
             for {
-              subreddit <- extractString(data, "subreddit", formats)
-              title     <- extractString(data, "title", formats)
+              subreddit  <- extractString(data, "subreddit", formats)
+              title      <- extractString(data, "title", formats)
               createdUtc <- extractDouble(data, "created_utc", formats)
+              ups        <- extractDouble(data, "ups", formats)
+              downs      <- extractDouble(data, "downs", formats)
             } yield {
               val selftext = extractString(data, "selftext", formats).getOrElse("")
               val epoch = createdUtc.toLong
               // Ahora formatEpochSeconds devuelve String, así que calza perfecto en la tupla
-              (subreddit, title, selftext, formatEpochSeconds(epoch))
+              (subreddit, title, selftext, formatEpochSeconds(epoch), ups.toInt, downs.toInt)
             }
           }
         case _ => Nil
@@ -113,12 +115,18 @@ object FileIO {
     "wouldn't", "you", "you'd", "you'll", "you're", "you've", "your", "yours",
     "yourself", "yourselves")
     
-    val words = posts.map(p => p._3.split("\\W+").groupBy(identity _))
+    val words = posts.map(w => w._3.split("\\W+").groupBy(identity _))
     
-    val filteredWords = words.map(m => m.filter { case (word, _) => word.nonEmpty && word.head.isUpper && !stopwords.contains(word.toLowerCase) })
+    val filteredWords = words.map(fw => fw.filter { case (word, _) => word.nonEmpty && word.head.isUpper && !stopwords.contains(word.toLowerCase) })
 
-    val wordsOcc = filteredWords.map (s => s.map {case (word, array) => (word, array.length) }) // Aca cada lista tiene (Word -> occurencia)
-
+    val wordsOcc = filteredWords.map (wo => wo.map {case (word, array) => (word, array.length) }) // Aca cada lista tiene Map(Word -> occurencia)
+    
     wordsOcc
+  }
+
+  def postStats(post: List[Post]): Unit = {
+
+    val score = posts.foldLeft(0)((acumulado, post) => acum + (post.ups - post.downs))
+    
   }
 }
