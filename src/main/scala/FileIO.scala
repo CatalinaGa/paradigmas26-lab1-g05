@@ -84,14 +84,14 @@ object FileIO {
 
   def filterPosts(posts: List[Post]): Option[List[Post]] = {
       Some (
-        posts.filter { case (title, selftext, _, _) =>
+        posts.filter { case (title, selftext, _, _, _, _) =>
           title.trim.nonEmpty && selftext.trim.nonEmpty
         }  
       )
   }
 
 
-  def wordsFreq(posts: List[Post]): List[Map[String, Int]] = {
+  def wordsFreq(posts: List[Post]): List[(String, Int)] = {
     
     val stopwords = Set("the", "about", "above", "after", "again", "against", "all", "am", "an",
     "and", "any", "are", "aren't", "as", "at", "be", "because", "been",
@@ -119,14 +119,22 @@ object FileIO {
     
     val filteredWords = words.map(fw => fw.filter { case (word, _) => word.nonEmpty && word.head.isUpper && !stopwords.contains(word.toLowerCase) })
 
-    val wordsOcc = filteredWords.map (wo => wo.map {case (word, array) => (word, array.length) }) // Aca cada lista tiene Map(Word -> occurencia)
-    
+    val wordsOcc = filteredWords.flatMap (wo => wo.map {case (word, array) => (word, array.length) }
+    .toList
+    .sortBy(_._2).reverse) // Aca cada lista tiene (Word, occurencia) de mayor a menor
     wordsOcc
   }
 
   def postStats(post: List[Post]): Unit = {
 
-    val score = posts.foldLeft(0)((acumulado, post) => acum + (post.ups - post.downs))
+    val score = post.foldLeft(0)((acumulado, p) => acumulado + (p._5 - p._6))
     
+    println(s"""
+    # Estadisticas de los Subreddits
+    - Subscription's name: ${post(0)._1}
+    - Total Score: $score
+    - Most repeated word: ${wordsFreq(post).head}
+    """)
+
   }
 }
