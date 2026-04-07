@@ -125,7 +125,7 @@ object FileIO {
     wordsOcc
   }
 
-  def postStats(post: List[Post]): Unit = {
+  def postStats(post: List[Post], url: String): Unit = {
 
     val score = post.foldLeft(0)((acumulado, p) => acumulado + (p._5 - p._6))
     
@@ -134,6 +134,10 @@ object FileIO {
     - Subscription's name: ${post(0)._1}
     - Total Score: $score
     - Most repeated word: ${wordsFreq(post).head}
+    - Cinco primeros post: 
+      ${url}
+      ${post(0)._2}
+      ${post(0)._4}
     """)
 
   }

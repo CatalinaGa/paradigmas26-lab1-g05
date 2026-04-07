@@ -18,7 +18,7 @@ object Main {
         // de Main siga teniendo una lista, aunque esté vacía.
         val posts = FileIO.downloadFeed(url, formats).getOrElse(Nil)
         val filteredPosts = FileIO.filterPosts(posts).getOrElse(Nil)
-        FileIO.postStats(filteredPosts)
+        FileIO.postStats(filteredPosts, url)
         (url, filteredPosts)
       }
 
@@ -29,7 +29,5 @@ object Main {
         
     }.getOrElse("No se encontraron suscripciones o el archivo es inválido.")
 
-  
-    println(output)
   }
 }
