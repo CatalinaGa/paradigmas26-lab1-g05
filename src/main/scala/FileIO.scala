@@ -49,7 +49,7 @@ private def formatEpochSeconds(seconds: Long): String = {
 
   val (mesFinal, diaFinal) = calcularMes(diasRestantesDelAño, monthDays, 0)
 
-  f"$añoFinal%04d-$mesFinal%02d-$diaFinal%02d T$h%02d:$m%02d:$s%02dZ"
+  f"$añoFinal%04d-$mesFinal%02d-$diaFinal%02dT$h%02d:$m%02d:$s%02dZ"
 }
 
 
