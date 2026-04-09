@@ -1,7 +1,5 @@
 import scala.io.Source
 import scala.util.Using
-import java.time.Instant
-import java.time.format.DateTimeFormatter
 import org.json4s.{ Formats, JArray, JValue }
 import org.json4s.jackson.JsonMethods.parse
 
@@ -16,8 +14,25 @@ object FileIO {
   private def extractDouble(value: JValue, key: String, formats: Formats): Option[Double] =
     (value \ key).extractOpt[Double](formats, manifest[Double])
 
-  private def formatEpochSeconds(seconds: Long): String =
-    DateTimeFormatter.ISO_INSTANT.format(Instant.ofEpochSecond(seconds))
+  private def formatEpochSeconds(seconds: Long): String = {
+    val s = seconds % 60
+    val m = (seconds / 60) % 60
+    val h = (seconds / 3600) % 24
+    val totalDays = seconds / 86400
+    
+    var days = totalDays.toInt
+    var year = 1970
+    while ({
+      val daysInYear = if (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)) 366 else 365
+      if (days >= daysInYear) { days -= daysInYear; year += 1; true } else false
+    }) ()
+
+    val leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
+    val monthDays = Array(31, if (leap) 29 else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
+    var month = 0
+    while (days >= monthDays(month)) { days -= monthDays(month); month += 1 }
+    f"$year%04d-${month + 1}%02d-${days + 1}%02d" + f"T$h%02d:$m%02d:$s%02dZ"
+  }
 
   // Pure function to read subscriptions from a JSON file
   def readSubscriptions(path: String, formats: Formats): Option[List[Subscription]] = {
