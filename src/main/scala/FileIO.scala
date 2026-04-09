@@ -2,6 +2,8 @@ import scala.io.Source
 import scala.util.Using
 import org.json4s.{ Formats, JArray, JValue }
 import org.json4s.jackson.JsonMethods.parse
+import scala.annotation.tailrec
+
 
 object FileIO {
 
@@ -14,25 +16,42 @@ object FileIO {
   private def extractDouble(value: JValue, key: String, formats: Formats): Option[Double] =
     (value \ key).extractOpt[Double](formats, manifest[Double])
 
-  private def formatEpochSeconds(seconds: Long): String = {
-    val s = seconds % 60
-    val m = (seconds / 60) % 60
-    val h = (seconds / 3600) % 24
-    val totalDays = seconds / 86400
-    
-    var days = totalDays.toInt
-    var year = 1970
-    while ({
-      val daysInYear = if (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)) 366 else 365
-      if (days >= daysInYear) { days -= daysInYear; year += 1; true } else false
-    }) ()
 
-    val leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
-    val monthDays = Array(31, if (leap) 29 else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
-    var month = 0
-    while (days >= monthDays(month)) { days -= monthDays(month); month += 1 }
-    f"$year%04d-${month + 1}%02d-${days + 1}%02d" + f"T$h%02d:$m%02d:$s%02dZ"
+private def formatEpochSeconds(seconds: Long): String = {
+  // calculo el tiempo base 
+  val s = seconds % 60
+  val m = (seconds / 60) % 60
+  val h = (seconds / 3600) % 24
+  val totalDays = (seconds / 86400).toInt
+
+  //cant de dias 
+  def esBisiesto(y: Int) = y % 4 == 0 && (y % 100 != 0 || y % 400 == 0)
+
+  @tailrec
+  def calcularAño(diasRestantes: Int, añoActual: Int): (Int, Int) = {
+    val diasEnEsteAño = if (esBisiesto(añoActual)) 366 else 365
+    if (diasRestantes < diasEnEsteAño) (diasRestantes, añoActual)
+    else calcularAño(diasRestantes - diasEnEsteAño, añoActual + 1)
   }
+
+  val (diasRestantesDelAño, añoFinal) = calcularAño(totalDays, 1970)
+
+  // meses 
+  val leap = esBisiesto(añoFinal)
+  val monthDays = List(31, if (leap) 29 else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
+
+  // recursividad para encontrar el mes y el día final
+  @tailrec
+  def calcularMes(dias: Int, meses: List[Int], mesActual: Int): (Int, Int) = {
+    if (dias < meses.head) (mesActual + 1, dias + 1)
+    else calcularMes(dias - meses.head, meses.tail, mesActual + 1)
+  }
+
+  val (mesFinal, diaFinal) = calcularMes(diasRestantesDelAño, monthDays, 0)
+
+  f"$añoFinal%04d-$mesFinal%02d-$diaFinal%02d T$h%02d:$m%02d:$s%02dZ"
+}
+
 
   // Pure function to read subscriptions from a JSON file
   def readSubscriptions(path: String, formats: Formats): Option[List[Subscription]] = {
